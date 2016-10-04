@@ -42,12 +42,17 @@ namespace SurgerySearch.Web.Services
                 pageSize = _elasticsearchClientFeature.Configuration.DefaultPageSize;
             }
 
+            const string gpPracticePrescribingLevel = "4";
+            const string closedStatusCode = "C";
+
             var searchResults = await _elasticsearchClientFeature.ElasticClient.SearchAsync<Surgery>(s => s
                 .From(pageNumber)
                 .Size(pageSize)
-                .Query(q => q
-                    .Wildcard("surgery.name", name.ToLower() + "*"))
-                );
+                .Query(q =>
+                    q.Terms(p=>p.name, name.Split(' '))
+                    && q.Term(p => p.prescribingSettings, gpPracticePrescribingLevel)
+                    && q.Bool(bq => bq.MustNot(mq => mq.Term(p=>p.statusCode, closedStatusCode)))
+                ));
 
             return searchResults.Documents.ToList();
         }

@@ -48,11 +48,12 @@ namespace SurgerySearch.Web.Services
             var searchResults = await _elasticsearchClientFeature.ElasticClient.SearchAsync<Surgery>(s => s
                 .From(pageNumber)
                 .Size(pageSize)
-                .Query(q =>
-                    q.Terms(p=>p.name, name.Split(' '))
-                    && q.Term(p => p.prescribingSettings, gpPracticePrescribingLevel)
-                    && q.Bool(bq => bq.MustNot(mq => mq.Term(p=>p.statusCode, closedStatusCode)))
-                ));
+                .Query(
+                    q =>
+                        q.QueryString(
+                            qs => qs.OnFields(f => f.name)
+                                .Query(name.ToLower() + "*")
+                                .MinimumShouldMatchPercentage(100))));
 
             return searchResults.Documents.ToList();
         }
